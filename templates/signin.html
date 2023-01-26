@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="static/css/style.css">
+    <title>Aukcje 24</title>
+  </head>
+  <body>
+
+    <p> Logowanie do systemu
+      <div class="container">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              {{ message }}
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+      <form action="/signin" method="post">
+        Login: <input name="username" placeholder="login"  type="text"/><br>
+        Hasło: <input name="password" placeholder="haslo" type="password"/><br>
+        <input name="login"   value="Zaloguj" type="submit"/>
+      </form>
+      <form action="/register" method="post">
+        <input name="register" value="Zarejestruj" type="submit"/>
+      </form>
+    </p>
+  </body>
+</html>
+

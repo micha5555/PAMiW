@@ -1,0 +1,22 @@
+<!doctype html>
+<head>
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    Hello, {{ name }}
+    <form action={{ url_for('products') }}>
+        <input type="submit" value="Wszystkie produkty" />
+    </form>
+    <form action={{ url_for('cart') }}>
+        <input type="submit" value="Koszyk" />
+    </form>
+    <form action={{url_for('myproducts') }}>
+        <input type="submit" value="Moje wystawione produkty" />
+    </form>
+    <form action={{url_for('myorders') }}>
+        <input type="submit" value="Moje zamówienia" />
+    </form>
+    <form action={{url_for('logout') }}>
+        <input name="logout" value="Wyloguj" type="submit"/>
+    </form>
+</body>

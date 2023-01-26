@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="static/css/style.css">
+    <title>Aukcje 24</title>
+  </head>
+  <body>
+    <h3>Twoje produkty</h3>
+    <form action="/myproducts" method="post">
+        <input type="text" name="search_field" value=""/>
+        <input type="submit" name="search" value="Szukaj"/>
+    </form>
+    <table border="1">
+        <th>Nazwa</th>
+        <th>Cena</th>
+        <th>Ilość</th>
+        {% for product in products_table%}
+            <tr>
+                <td>{{ product[0] }}</td>
+                <td>{{ product[1] }}</td>
+                <td>{{ product[2] }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+    <form action={{ url_for('main_panel') }}>
+        <input type="submit" value="Wstecz" />
+    </form>
+  </body>
+</html>

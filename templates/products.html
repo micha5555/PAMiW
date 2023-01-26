@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="static/css/style.css">
+  <title>Aukcje 24</title>
+
+
+
+</head>
+
+<body>
+  <h3>Wszystkie produkty</h3>
+  <form action="/products" method="post">
+    <input type="text" name="search_field" value="" />
+    <input type="submit" name="search" value="Szukaj" />
+  </form>
+  <form action="/addtocart" method="post">
+    <table border="1">
+      <th>Nazwa</th>
+      <th>Cena</th>
+      <th>Ilość</th>
+      <th>Wystawił</th>
+      JAK ZROBIĆ TEN PRZYCISK DO DODAWANIA ARTYKUŁU DO KOSZYKA?
+      {% for product in products_table%}
+      <tr>
+        <td>{{ product[1] }}</td>
+        <td>{{ product[2] }}</td>
+        <td>{{ product[4] }}</td>
+        <td>{{ product[3] }}</td>
+        <td><input type="text" name={{ product[0] }} value={{ product[1] }} /></td>
+        <td><input type="submit" name="add_to_cart" value="Dodaj do koszyka"/></td>
+      </tr>
+      {% endfor %}
+    </table>
+    </form>
+
+    _______________________________________<br>
+    Dodaj nowy produkt:
+    <form action="/products" method="post">
+        Nazwa produktu: <input name="prod_name" value=""  type="text"/><br>
+        Cena:           <input name="price" value="0" type="number" step="0.01"/><br>
+        Ilość:          <input name="quantity" value="0" type="number" step="1"/><br>
+        <input value="Dodaj" type="submit"/>
+    </form>
+    <form action={{ url_for('main_panel') }}>
+          <input type="submit" value="Wstecz" />
+  </form>
+
+  <script>
+    function setValue(value)
+    {
+       document.getElementById("productid").value = value;
+    }
+ </script>
+</body>
+
+</html>

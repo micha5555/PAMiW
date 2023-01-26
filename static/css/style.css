@@ -1,0 +1,13 @@
+body {
+    background-color: lightblue;
+}
+
+input[type=button], input[type=submit], input[type=reset] {
+    background-color: #006ac0;
+    border: none;
+    color: white;
+    padding: 5px 5px;
+    text-decoration: none;
+    margin: 1px 1px;
+    cursor: pointer;
+  }
