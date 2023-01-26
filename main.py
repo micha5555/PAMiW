@@ -93,7 +93,10 @@ def login():
 def register():
     if(validate_register_data_corectness(request.form.get("username"), request.form.get("password"), request.form.get("repeated_password"))):
         passwd = ph.hash(request.form.get("password"))
-        register_user(request.form.get("username"), passwd)
+        login = request.form.get("username")
+        register_user(login, passwd)
+        create_cart(login)
+        flash("Zarejestrowano pomyślnie")
         return redirect("/signin")
     else:
         if "submit" in request.form :
@@ -118,6 +121,7 @@ def main_panel():
     #     return redirect('/')
     return render_template("mainpanel.html", name=current_user.id)
 
+# walidacja czy poprawnie chłop wpisał dane
 @app.route('/products', methods=["GET", "POST"])
 @login_required
 def products():
@@ -150,16 +154,32 @@ def myorders():
 @login_required
 def cart():
     # if request.method == 'GET':
-    return render_template("cart.html")
+    clientCart = get_client_cart(current_user.id)
+    productsFromCart = None
+    try:
+        productsFromCart = get_clients_products_in_cart(clientCart[0])
+    except:
+        pass
+    return render_template("cart.html", productsFromCart=productsFromCart, totalPrice=clientCart[1])
 
 @app.route('/addtocart', methods=["POST"])
 @login_required
 def add_to_cart():
-    print(request.form.get("1"))
-    print(request.form.get("2"))
-    print(request.form.get("3"))
-    print("nnnn")
+    productId = request.form.get("productid")
+    productPrice = request.form.get("productprice")
+    clientCart = get_client_cart(current_user.id)
+    cartToProduct = get_cart_to_product_with_cartId_and_productId(clientCart[0], productId)
+    if cartToProduct == None:
+        create_cart_to_product(clientCart[0], productId, 1, float(productPrice))
+        return redirect('/products')
+    increment_quantity_in_carttoproduct(clientCart[0], productId)
     return redirect('/products')
+
+@app.route('/emptycart', methods=["POST", "GET"])
+@login_required
+def empty_cart():
+    empty_cart_from_db(current_user.id)
+    return redirect('/cart')
 
 def check_if_logged():
     return len(current_user.id) > 0

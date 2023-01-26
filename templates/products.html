@@ -15,25 +15,26 @@
     <input type="text" name="search_field" value="" />
     <input type="submit" name="search" value="Szukaj" />
   </form>
-  <form action="/addtocart" method="post">
-    <table border="1">
-      <th>Nazwa</th>
-      <th>Cena</th>
-      <th>Ilość</th>
-      <th>Wystawił</th>
-      JAK ZROBIĆ TEN PRZYCISK DO DODAWANIA ARTYKUŁU DO KOSZYKA?
-      {% for product in products_table%}
+  <table border="1">
+    <th>Nazwa</th>
+    <th>Cena</th>
+    <th>Ilość</th>
+    <th>Wystawił</th>
+    JAK ZROBIĆ TEN PRZYCISK DO DODAWANIA ARTYKUŁU DO KOSZYKA?
+    {% for product in products_table%}
+    <form action="/addtocart" method="post">
       <tr>
         <td>{{ product[1] }}</td>
         <td>{{ product[2] }}</td>
         <td>{{ product[4] }}</td>
         <td>{{ product[3] }}</td>
-        <td><input type="text" name={{ product[0] }} value={{ product[1] }} /></td>
+        <input type="hidden" name="productid" value={{ product[0] }} />
+        <input type="hidden" name="productprice" value={{ product[2] }} />
         <td><input type="submit" name="add_to_cart" value="Dodaj do koszyka"/></td>
       </tr>
+    </form>
       {% endfor %}
     </table>
-    </form>
 
     _______________________________________<br>
     Dodaj nowy produkt:

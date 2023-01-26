@@ -8,16 +8,28 @@
     <h3>Twój koszyk</h3>
     <table border="1">
         <th>Nazwa</th>
-        <th>Cena</th>
+        <th>Cena za sztukę</th>
         <th>Ilość</th>
-        {% for product in products_table%}
+        <th>Suma</th>
+        <th>Sprzedający</th>
+        {% for product in productsFromCart%}
             <tr>
                 <td>{{ product[0] }}</td>
                 <td>{{ product[1] }}</td>
+                <td>{{ product[3] }}</td>
+                <td>{{ product[4] }}</td>
                 <td>{{ product[2] }}</td>
             </tr>
         {% endfor %}
     </table>
+    <table>
+      <th>Suma całkowita: 
+        <label type="text">{{ totalPrice }}</label>
+      </th>
+    </table>
+    <form action={{ url_for('empty_cart') }}>
+      <input type="submit" value="Opróżnij koszyk" />
+    </form>
     <form action={{ url_for('main_panel') }}>
         <input type="submit" value="Wstecz" />
     </form>
