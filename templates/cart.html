@@ -27,6 +27,9 @@
         <label type="text">{{ totalPrice }}</label>
       </th>
     </table>
+    <form action={{ url_for('make_order') }} method="post">
+      <input type="submit" value="Zamów" />
+    </form>
     <form action={{ url_for('empty_cart') }}>
       <input type="submit" value="Opróżnij koszyk" />
     </form>
