@@ -1,15 +1,69 @@
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from validator import validate_register_data_corectness
-from flask import Flask, request, make_response, render_template, redirect, flash
-# from database_module.db_operations_server import *
+from flask import Flask, request, render_template, redirect, flash
 from argon2 import PasswordHasher
 import requests
 import json
+from requests import Request, post
+# OAuth
+import random, string
+from flask_dance.contrib.github import github
+
+# to fill
+CLIENT_ID = ''
+CLIENT_SECRET = ''
 
 app = Flask(__name__) 
 login_manager = LoginManager()
 login_manager.init_app(app)
 app.secret_key = "854658yuthjtureyu89tjh89trj8h548h754y7854hty8er8ygw875g6854yt88"
+
+def generate_state(length=30):
+  char = string.ascii_letters + string.digits
+  rand = random.SystemRandom()
+  return ''.join(rand.choice(char) for _ in range(length))
+
+@app.route("/callback")
+def callback():
+  args = request.args
+  cookies = request.cookies
+
+  if args.get("state") != cookies.get("state"):
+    return "State does not match. Possible authorization_code injection attempt", 400
+
+  params = {
+    "client_id": CLIENT_ID,
+    "client_secret": CLIENT_SECRET,
+    "code": args.get("code")
+  }
+  
+  access_token = post("https://github.com/login/oauth/access_token",
+                      params=params)
+  part_of_the_access_token = access_token.text[:24]
+  print(part_of_the_access_token, end="...\n")
+
+#   headers = {"Authorization": f"Token {access_token}"}
+#   user_info = requests.get("https://api.github.com/user", headers=headers).json()
+#   print(user_info)
+
+  return "Authorized in GitHub OAuth Server", 200
+
+@app.route("/oauth")
+def authorize_with_github():
+  random_state = generate_state()
+  params = {
+    "client_id": CLIENT_ID,
+    "redirect_uri": "http://127.0.0.1:5050/callback",
+    "scope": "repo user",
+    "state": random_state
+  }
+
+  authorize = Request("GET", "https://github.com/login/oauth/authorize",
+                      params=params).prepare()
+
+  response = redirect(authorize.url)
+  response.set_cookie("state", random_state)
+  return response
 
 # json-rpc
 url = "http://localhost:4000/jsonrpc"
@@ -36,7 +90,6 @@ def user_loader(username):
     if username is None:
         return None
     row = send_request("get_user", [username])
-    # print(row)
     try:
         username, password = row
     except:
@@ -58,36 +111,21 @@ def signin():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        # time.sleep(3)
         user = user_loader(username)
         if user is None:
-            # invalidLoginsCounter = invalidLoginsCounter + 1
             flash("Nieprawidłowy login lub hasło")
-            # if invalidLoginsCounter == 5:
-            #     flash("Nastąpiło zbyt wiele nieudanych prób logowania, musiałeś chwilę zaczekać")
-            #     mustWait = 1
-            #     invalidLoginsCounter = 0
             return redirect("/signin")
 
         try:
             ph.verify(user.password, password)
             login_user(user)
-            # invalidLoginsCounter = 0
             return redirect('/mainpanel')
         except:
-            # invalidLoginsCounter = invalidLoginsCounter + 1
             flash("Nieprawidłowy login lub hasło")
-            # if invalidLoginsCounter == 5:
-            #     flash("Nastąpiło zbyt wiele nieudanych prób logowania, musiałeś chwilę zaczekać")
-            #     mustWait = 1
-            #     invalidLoginsCounter = 0
             return redirect("/signin")
 
 @app.route('/login', methods=["POST"])
 def login():
-    # print(request.forSm.keys())
-    # if 'register' in request.form.keys():
-    #     return render_registrationpanel()
     if 'login' in request.form.keys():
         return redirect('/')
     
@@ -115,12 +153,6 @@ def logout():
 def main_panel():
     if not check_if_logged():
         return render_template("notlogged.html")
-    # print("actual user ", actual_user)
-    # if request.method == "POST":
-    #     actual_user = ""
-    #     return redirect('/login')
-    # if actual_user == "":
-    #     return redirect('/')
     return render_template("mainpanel.html", name=current_user.id)
 
 # walidacja czy poprawnie chłop wpisał dane
@@ -145,20 +177,17 @@ def products():
 @app.route('/myproducts', methods=["GET", "POST"])
 @login_required
 def myproducts():
-    # if request.method == 'GET':
     user_products = send_request("get_user_products", [current_user.id])
     return render_template("myproducts.html", products_table=user_products)
 
 @app.route('/myorders', methods=["GET", "POST"])
 @login_required
 def myorders():
-    # if request.method == 'GET':
     return render_template("myorders.html")
 
 @app.route('/cart', methods=["GET", "POST"])
 @login_required
 def cart():
-    # if request.method == 'GET':
     clientCart = send_request("get_client_cart", [current_user.id])
     productsFromCart = None
     try:
@@ -188,13 +217,6 @@ def empty_cart():
 
 def check_if_logged():
     return len(current_user.id) > 0
-# def register():
-#     username = request.form.get("login", "")
-#     password = request.form.get("password", "")
-#     repeated_password = request.form.get("repeated_password", "")
-# @app.route('/with-url/<argument>', methods=["GET"])
-# def with_url(argument):
-#     return "Got argument [" + argument + "]", 200
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5050)

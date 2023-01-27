@@ -75,14 +75,6 @@ def get_user(login):
     db.close()
     return row
 
-# def check_corectness(login, password):
-#     if(login is not None and password is not None):
-#         print('in if')
-#         print(len(login))
-#         print(len(password))
-#         return len(login) > 0 and len(password) > 0 
-#     return False
-
 def register_user(login, password):
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
