@@ -1,5 +1,5 @@
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from validator import validate_register_data_corectness
+from validator import validate_login_and_password
 from flask import Flask, request, render_template, redirect, flash
 from argon2 import PasswordHasher
 import requests
@@ -65,6 +65,8 @@ def authorize_with_github():
   response.set_cookie("state", random_state)
   return response
 
+
+
 # json-rpc
 url = "http://localhost:4000/jsonrpc"
 headers = {'content-type': 'application/json'}
@@ -129,13 +131,27 @@ def login():
     if 'login' in request.form.keys():
         return redirect('/')
     
-@app.route("/register", methods=['POST'])
+@app.route("/register", methods=["POST", "GET"])
 def register():
-    if(validate_register_data_corectness(request.form.get("username"), request.form.get("password"), request.form.get("repeated_password"))):
+    if request.method == "GET":
+        return render_template("registerpanel.html")
+    username = request.form.get("username")
+    password = request.form.get("password")
+    repeated_password = request.form.get("repeated_password")
+    userExists = send_request("check_if_user_exists", [username])
+    print(userExists)
+    if userExists:
+        flash("Użytkownik " + username + " już istnieje")
+        return redirect("/signin")
+    if password != repeated_password:
+        flash("Niepoprawne dane")
+        return render_template("registerpanel.html")
+    if(validate_login_and_password(username, password)):
         passwd = ph.hash(request.form.get("password"))
-        login = request.form.get("username")
-        send_request("register_user", [login, passwd])
-        send_request("create_cart", [login])
+        print(username)
+        print(passwd)
+        send_request("register_user", [username, passwd])
+        send_request("create_cart", [username])
         flash("Zarejestrowano pomyślnie")
         return redirect("/signin")
     else:
@@ -183,7 +199,14 @@ def myproducts():
 @app.route('/myorders', methods=["GET", "POST"])
 @login_required
 def myorders():
-    return render_template("myorders.html")
+    orders = send_request("get_client_orders", [current_user.id])
+    keys = orders.keys()
+    ordersValue = []
+    for key in keys:
+        ordersValue.append(orders[key])
+    print(ordersValue)
+    print(ordersValue[0])
+    return render_template("myorders.html", orders=ordersValue)
 
 @app.route('/cart', methods=["GET", "POST"])
 @login_required
@@ -195,6 +218,21 @@ def cart():
     except:
         pass
     return render_template("cart.html", productsFromCart=productsFromCart, totalPrice=clientCart[1])
+
+@app.route('/createorder', methods=["POST"])
+@login_required
+def make_order():
+    clientCart = send_request("get_client_cart", [current_user.id])
+    productsFromCart = None
+    try:
+        productsFromCart = send_request("get_clients_products_in_cart",[clientCart[0]])
+        # print(productsFromCart[0]) 
+        # print(len(productsFromCart))2
+        # print(len(productsFromCart[0]))5
+        send_request("make_order", [productsFromCart, current_user.id, clientCart[1]])
+    except:
+        flash("Brak produktów w koszyku")
+    return redirect('/cart')
 
 @app.route('/addtocart', methods=["POST"])
 @login_required
