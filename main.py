@@ -1,5 +1,5 @@
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from validator import validate_login_and_password
+from validator import validate_login_and_password, validate_product
 from flask import Flask, request, render_template, redirect, flash
 from argon2 import PasswordHasher
 import requests
@@ -178,8 +178,12 @@ def products():
     rows = ''
     if request.method == 'POST' and 'prod_name' in request.form:
         prod_name = request.form.get('prod_name')
-        price = float(request.form.get('price'))
-        quantity = int(request.form.get('quantity'))
+        price = request.form.get('price')
+        quantity = request.form.get('quantity')
+        product_correct = validate_product(prod_name, price, quantity)
+        if not product_correct:
+            flash("Niepoprawne wartości dodawanego produktu")
+            return redirect("/products")
         added = send_request("add_product", [prod_name, price, current_user.id, quantity])
         if not added:
             flash("Nie udało się dodać produktu. Upewnij się, że nazwa jest poprawna, cena oraz ilość większa od zera")

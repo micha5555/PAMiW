@@ -4,13 +4,19 @@
 <head>
   <link rel="stylesheet" href="static/css/style.css">
   <title>Aukcje 24</title>
-
-
-
 </head>
 
 <body>
   <h3>Wszystkie produkty</h3>
+  <div class="container">
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    {% for message in messages %}
+    {{ message }}
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+  </div>
   <form action="/products" method="post">
     <input type="text" name="search_field" value="" />
     <input type="submit" name="search" value="Szukaj" />
