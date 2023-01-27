@@ -1,16 +1,32 @@
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from validator import validate_register_data_corectness
 from flask import Flask, request, make_response, render_template, redirect, flash
-from db_operations import *
-import sqlite3
+# from database_module.db_operations_server import *
 from argon2 import PasswordHasher
+import requests
+import json
 
 app = Flask(__name__) 
 login_manager = LoginManager()
 login_manager.init_app(app)
 app.secret_key = "854658yuthjtureyu89tjh89trj8h548h754y7854hty8er8ygw875g6854yt88"
-create_tables()
-DATABASE = "app_database.db"
+
+# json-rpc
+url = "http://localhost:4000/jsonrpc"
+headers = {'content-type': 'application/json'}
+def send_request(method_name, args):
+    payload = {
+        "method": method_name,
+        "params": args,
+        "jsonrpc": "2.0",
+        "id": 0,
+    }
+    response = requests.post(
+    url, data=json.dumps(payload), headers=headers).json()
+    return response['result']
+
+send_request("create_tables", [])
+
 ph = PasswordHasher()
 class User(UserMixin):
     pass
@@ -19,11 +35,8 @@ class User(UserMixin):
 def user_loader(username):
     if username is None:
         return None
-
-    db = sqlite3.connect(DATABASE)
-    sql = db.cursor()
-    sql.execute(f"SELECT login, password FROM users WHERE login IN(?)", (username,))
-    row = sql.fetchone()
+    row = send_request("get_user", [username])
+    # print(row)
     try:
         username, password = row
     except:
@@ -70,17 +83,6 @@ def signin():
             #     invalidLoginsCounter = 0
             return redirect("/signin")
 
-    # if request.method == 'POST':
-    #     username = request.form.get("username", "nothing")
-    #     password = request.form.get("password", "nothing")
-    #     # if validate_login_data_corectness(login, password) and check_credentials(username, password):
-    #     if check_credentials(username, password):
-    #         global actual_user
-    #         actual_user = username
-    #         return redirect('/mainpanel')
-    #     flash("Niepoprawny login lub hasło")
-    # return render_template("signin.html")
-
 @app.route('/login', methods=["POST"])
 def login():
     # print(request.forSm.keys())
@@ -94,8 +96,8 @@ def register():
     if(validate_register_data_corectness(request.form.get("username"), request.form.get("password"), request.form.get("repeated_password"))):
         passwd = ph.hash(request.form.get("password"))
         login = request.form.get("username")
-        register_user(login, passwd)
-        create_cart(login)
+        send_request("register_user", [login, passwd])
+        send_request("create_cart", [login])
         flash("Zarejestrowano pomyślnie")
         return redirect("/signin")
     else:
@@ -127,21 +129,24 @@ def main_panel():
 def products():
     rows = ''
     if request.method == 'POST' and 'prod_name' in request.form:
-        added = add_product(request.form.get('prod_name'), float(request.form.get('price')), current_user.id, int(request.form.get('quantity')))
+        prod_name = request.form.get('prod_name')
+        price = float(request.form.get('price'))
+        quantity = int(request.form.get('quantity'))
+        added = send_request("add_product", [prod_name, price, current_user.id, quantity])
         if not added:
             flash("Nie udało się dodać produktu. Upewnij się, że nazwa jest poprawna, cena oraz ilość większa od zera")
             redirect("/products")
     if request.method == 'POST' and 'search_field' in request.form and len(request.form.get('search_field')) > 0:
-        rows = get_products_where_name_has_pattern(request.form.get('search_field'))
+        rows = send_request("get_products_where_name_has_pattern", [request.form.get('search_field')])
     else:
-        rows = get_all_products()
+        rows = send_request("get_all_products", [])
     return render_template("products.html", products_table=rows)
 
 @app.route('/myproducts', methods=["GET", "POST"])
 @login_required
 def myproducts():
     # if request.method == 'GET':
-    user_products = get_user_products(current_user.id)
+    user_products = send_request("get_user_products", [current_user.id])
     return render_template("myproducts.html", products_table=user_products)
 
 @app.route('/myorders', methods=["GET", "POST"])
@@ -154,10 +159,10 @@ def myorders():
 @login_required
 def cart():
     # if request.method == 'GET':
-    clientCart = get_client_cart(current_user.id)
+    clientCart = send_request("get_client_cart", [current_user.id])
     productsFromCart = None
     try:
-        productsFromCart = get_clients_products_in_cart(clientCart[0])
+        productsFromCart = send_request("get_clients_products_in_cart",[clientCart[0]])
     except:
         pass
     return render_template("cart.html", productsFromCart=productsFromCart, totalPrice=clientCart[1])
@@ -167,18 +172,18 @@ def cart():
 def add_to_cart():
     productId = request.form.get("productid")
     productPrice = request.form.get("productprice")
-    clientCart = get_client_cart(current_user.id)
-    cartToProduct = get_cart_to_product_with_cartId_and_productId(clientCart[0], productId)
+    clientCart = send_request("get_client_cart", [current_user.id])
+    cartToProduct = send_request("get_cart_to_product_with_cartId_and_productId", [clientCart[0], productId])
     if cartToProduct == None:
-        create_cart_to_product(clientCart[0], productId, 1, float(productPrice))
+        send_request("create_cart_to_product", [clientCart[0], productId, 1, float(productPrice)])
         return redirect('/products')
-    increment_quantity_in_carttoproduct(clientCart[0], productId)
+    send_request("increment_quantity_in_carttoproduct", [clientCart[0], productId])
     return redirect('/products')
 
 @app.route('/emptycart', methods=["POST", "GET"])
 @login_required
 def empty_cart():
-    empty_cart_from_db(current_user.id)
+    send_request("empty_cart_from_db", [current_user.id])
     return redirect('/cart')
 
 def check_if_logged():

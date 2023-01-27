@@ -1,5 +1,10 @@
 import sqlite3
 
+from werkzeug.wrappers import Request, Response
+from werkzeug.serving import run_simple
+
+from jsonrpc import JSONRPCResponseManager, dispatcher
+
 db_name = "app_database.db"
 
 def create_tables():
@@ -62,33 +67,21 @@ def create_tables():
     db.commit()
     db.close()
 
-# to do zmiany fest
-def check_credentials(login, password):
-    db = sqlite3.connect(db_name)
-    cursor = db.cursor()
-    cursor.execute('''
-            SELECT * FROM users
-    ''')
-    rows = cursor.fetchall()
-    print(rows)
+def get_user(login):
+    db = sqlite3.connect("app_database.db")
+    sql = db.cursor()
+    sql.execute(f"SELECT login, password FROM users WHERE login IN(?)", (login,))
+    row = sql.fetchone()
     db.close()
-    for row in rows:
-        if row[1] == login and row[2] == password:
-            # print('true')
-            return True
-    # if login in login_credentials.keys():
-    #     if password == login_credentials[login]:
-    #         return True
-    print('false')
-    return False
+    return row
 
-def check_corectness(login, password):
-    if(login is not None and password is not None):
-        print('in if')
-        print(len(login))
-        print(len(password))
-        return len(login) > 0 and len(password) > 0 
-    return False
+# def check_corectness(login, password):
+#     if(login is not None and password is not None):
+#         print('in if')
+#         print(len(login))
+#         print(len(password))
+#         return len(login) > 0 and len(password) > 0 
+#     return False
 
 def register_user(login, password):
     db = sqlite3.connect(db_name)
@@ -189,7 +182,6 @@ def get_all_products():
     db.close()
     return rows
 
-# poprawić bo będzie sql injection
 def get_products_where_name_has_pattern(pattern):
     db = sqlite3.connect(db_name)
     cursor = db.cursor()
@@ -207,3 +199,28 @@ def get_user_products(user):
     rows = cursor.fetchall()
     db.close()
     return rows
+
+@Request.application
+def application(request):
+    dispatcher["create_tables"] = create_tables
+    dispatcher["get_user"] = get_user #login
+    dispatcher["register_user"] = register_user #login, password
+    dispatcher["create_cart"] = create_cart #login
+    dispatcher["get_client_cart"] = get_client_cart #login
+    dispatcher["get_clients_products_in_cart"] = get_clients_products_in_cart #clientCartId
+    dispatcher["get_cart_to_product_with_cartId_and_productId"] = get_cart_to_product_with_cartId_and_productId #(clientCartId, productId)
+    dispatcher["create_cart_to_product"] = create_cart_to_product #(clientCartId, productId, quantity, productPrice):
+    dispatcher["empty_cart_from_db"] = empty_cart_from_db #(login)
+    dispatcher["increment_price_in_cart"] = increment_price_in_cart #(clientCartId, productPrice)
+    dispatcher["increment_quantity_in_carttoproduct"] = increment_quantity_in_carttoproduct #(clientCartId, productId)
+    dispatcher["add_product"] = add_product #(name, price, seller, quantity)
+    dispatcher["get_all_products"] = get_all_products
+    dispatcher["get_products_where_name_has_pattern"] = get_products_where_name_has_pattern #(pattern)
+    dispatcher["get_user_products"] = get_user_products #(user)
+    
+    response = JSONRPCResponseManager.handle(
+        request.get_data(cache=False, as_text=True), dispatcher)
+    return Response(response.json, mimetype='application/json')
+
+if __name__ == '__main__':
+    run_simple('localhost', 4000, application)
